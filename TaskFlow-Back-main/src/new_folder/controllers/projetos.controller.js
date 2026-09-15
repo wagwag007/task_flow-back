@@ -1,4 +1,4 @@
-// c
+// check if the id is a valid positive integer
 const projetoModel = require('../models/projeto.model');
 const tarefaModel = require('../models/tarefa.models');
 
