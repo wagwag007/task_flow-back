@@ -17,9 +17,10 @@ app.use('/tarefas', tarefasRoutes);
 app.use('/usuarios', usuariosRoutes);
 app.use('/projetos', projetosRoutes);
 
-app.use((req, res) => {
-    res.status(404).json({ erro: 'Rota não encontrada' });
+app.get('/', (req, res) => {
+  res.json({ mensagem: 'API TaskFlow rodando com sucesso!' });
 });
+
 
 app.listen(PORTA, () => {
     console.log(`Servidor rodando em http://localhost:${PORTA}`);
