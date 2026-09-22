@@ -21,9 +21,10 @@ app.get('/', (req, res) => {
   res.json({ mensagem: 'API TaskFlow rodando com sucesso!' });
 });
 
-
-app.listen(PORTA, () => {
-    console.log(`Servidor rodando em http://localhost:${PORTA}`);
-});
+if (require.main === module) {
+    app.listen(PORTA, () => {
+        console.log(`Servidor rodando em http://localhost:${PORTA}`);
+    });
+}
 
 module.exports = app;
