@@ -1,30 +1,26 @@
 const jwt = require('jsonwebtoken');
 
 function autenticar(req, res, next) {
-    const authHeader = req.headers.authorization;
+  const authHeader = req.headers.authorization;
 
-    if (!authHeader) {
-        return res.status(401).json({ erro: 'Token não informado' });
-    }
+  if (!authHeader) {
+    return res.status(401).json({ mensagem: 'Token de acesso não fornecido.' });
+  }
 
-    const [prefixo, token] = authHeader.split(' ');
+  const parts = authHeader.split(' ');
+  if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    return res.status(401).json({ mensagem: 'Erro no formato do token.' });
+  }
 
-    if (prefixo !== 'Bearer' || !token) {
-        return res.status(401).json({ erro: 'Formato inválido. Use: Bearer <token>' });
-    }
+  const token = parts[1];
 
-    try {
-        const segredo = process.env.JWT_SECRET || 'taskflow-secret-dev';
-        const payload = jwt.verify(token, segredo);
-        req.usuario = payload;
-        return next();
-    } catch (erro) {
-        if (erro.name === 'TokenExpiredError') {
-            return res.status(401).json({ erro: 'Token expirado. Faça login novamente.' });
-        }
-
-        return res.status(401).json({ erro: 'Token inválido.' });
-    }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'taskflow-local-secret');
+    req.usuario = decoded;
+    return next();
+  } catch (err) {
+    return res.status(401).json({ mensagem: 'Token inválido ou expirado.' });
+  }
 }
 
 module.exports = autenticar;

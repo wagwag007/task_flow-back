@@ -1,21 +1,19 @@
 const schemas = {
-    tarefa: {
-        texto: { obrigatorio: true, type: 'string' },
-        prioridade: { obrigatorio: false, type: 'string', enum: ['baixa', 'media', 'alta'] },
-        coluna: { obrigatorio: true, type: 'string', enum: ['afazer', 'andamento', 'concluido'] },
-        usuarioId: { obrigatorio: false, type: 'number' }
-    },
-
-    usuario: {
-        nome: { obrigatorio: true, type: 'string', minLength: 3 },
-        email: { obrigatorio: true, type: 'string', formato: 'email' },
-        senha: { obrigatorio: true, type: 'string', minLength: 6 },
-    },
-
-    projeto: {
-        nome: { obrigatorio: true, type: 'string' },
-        descricao: { obrigatorio: false, type: 'string', maxLength: 200 },
-    },
-};  
+  tarefa: {
+    titulo: { obrigatorio: true, tipo: 'string' },
+    prioridade: { obrigatorio: false, tipo: 'string', enum: ['alta', 'media', 'baixa'] },
+    coluna: { obrigatorio: false, tipo: 'string', enum: ['afazer', 'andamento', 'concluido'] },
+    usuarioId: { obrigatorio: false, tipo: 'number' },
+  },
+  usuario: {
+    nome: { obrigatorio: true, tipo: 'string', minLength: 3 },
+    email: { obrigatorio: true, tipo: 'string', formato: 'email' },
+    senha: { obrigatorio: true, tipo: 'string', minLength: 6 },
+  },
+  projeto: {
+    nome: { obrigatorio: true, tipo: 'string' },
+    descricao: { obrigatorio: false, tipo: 'string', maxLength: 200 },
+  },
+};
 
 module.exports = schemas;
