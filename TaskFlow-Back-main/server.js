@@ -1,30 +1,24 @@
-require('dotenv').config();
 const express = require('express');
-const tarefasRoutes = require('./routes/tarefas.routes');
-const usuariosRoutes = require('./routes/usuarios.routes');
-const projetosRoutes = require('./routes/projetos.routes');
-const temporizador = require('./middlewares/logger');
-const corsMiddleware = require('./middlewares/cors');
-const authRoutes = require('./routes/auth.routes');
+
+const tarefasRoutes = require('./src/new_folder/routes/tarefas.routes');
+const usuariosRoutes = require('./src/new_folder/routes/usuarios.routes');
+const projetosRoutes = require('./src/new_folder/routes/projetos.routes');
+const logger = require('./src/new_folder/middlewares/logger');
+const corsMiddleware = require('./src/new_folder/middlewares/cors');
 
 const app = express();
 const PORTA = process.env.PORT || 3000;
 
-app.use(corsMiddleware);
 app.use(express.json());
-app.use(temporizador);
-
-app.get('/', (req, res) => {
-    res.json({ mensagem: 'TaskFlow API funcionando!' });
-});
+app.use(logger);
+app.use(corsMiddleware);
 
 app.use('/tarefas', tarefasRoutes);
 app.use('/usuarios', usuariosRoutes);
 app.use('/projetos', projetosRoutes);
-app.use('/auth', authRoutes);
 
-app.use((req, res) => {
-    res.status(404).json({ erro: 'Rota não encontrada' });
+app.get('/', (req, res) => {
+  res.json({ mensagem: 'API TaskFlow rodando com sucesso!' });
 });
 
 if (require.main === module) {
