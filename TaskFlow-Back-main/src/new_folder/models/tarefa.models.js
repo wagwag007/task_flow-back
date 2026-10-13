@@ -1,36 +1,52 @@
-let tarefas = [
-    { id: 1, texto: 'Estudar Node.js', prioridade: 'alta', coluna: 'andamento' },
-    { id: 2, texto: 'Fazer exercícios', prioridade: 'media', coluna: 'afazer' },
-];
-let proximoId = 3;
+
+
+const fs = require('fs');
+const path = require('path');
+
+const diretorioDados = path.join(__dirname, '..', 'data');
+const arquivoDados = path.join(diretorioDados, 'tarefas.json');
+
+function carregarTarefas() {
+    fs.mkdirSync(diretorioDados, { recursive: true });
+
+    if (!fs.existsSync(arquivoDados)) {
+        fs.writeFileSync(arquivoDados, '[]', 'utf8');
+        return [];
+    }
+
+    const conteudo = fs.readFileSync(arquivoDados, 'utf8');
+    return conteudo.trim() ? JSON.parse(conteudo) : [];
+}
+
+function salvarTarefas(tarefas) {
+    fs.writeFileSync(arquivoDados, JSON.stringify(tarefas, null, 2), 'utf8');
+}
+
+let tarefas = carregarTarefas();
 
 module.exports = {
-    listar: () => tarefas,
-    listarPorColuna: (coluna) => tarefas.filter(tarefa => tarefa.coluna === coluna),
-    listarPorUsuario: (usuarioId) => tarefas.filter(tarefa => tarefa.usuarioId === usuarioId),
-    listarPorProjeto: (projetoId) => tarefas.filter(tarefa => tarefa.projetoId === projetoId),
-    buscar: (id) => tarefas.find(tarefa => tarefa.id === id),
-
-    adicionar: ({ texto, prioridade = 'media', coluna = 'afazer', usuarioId, projetoId }) => {
-        const nova = { id: proximoId++, texto, prioridade, coluna };
-        if (usuarioId !== undefined) nova.usuarioId = usuarioId;
-        if (projetoId !== undefined) nova.projetoId = projetoId;
-        tarefas.push(nova);
-        return nova;
+    listar: (usuarioId) => tarefas.filter(t => t.usuarioId === Number(usuarioId)),
+    buscarPorId: (id, usuarioId) => tarefas.find(t => t.id === Number(id) && t.usuarioId === Number(usuarioId)),
+    criar: (tarefa) => {
+        const novaTarefa = { id: Date.now(), ...tarefa };
+        tarefas.push(novaTarefa);
+        salvarTarefas(tarefas);
+        return novaTarefa;
     },
+    atualizar: (id, tarefaAtualizada) => {
+        const indice = tarefas.findIndex(t => t.id === Number(id) && t.usuarioId === Number(tarefaAtualizada.usuarioId));
+        if (indice === -1) return null;
 
-    atualizar: (id, dados) => {
-        const indice = tarefas.findIndex(tarefa => tarefa.id === id);
-        if (indice === -1) return undefined;
-
-        tarefas[indice] = { ...tarefas[indice], ...dados, id };
+        tarefas[indice] = { ...tarefas[indice], ...tarefaAtualizada, id: Number(id) };
+        salvarTarefas(tarefas);
         return tarefas[indice];
     },
+    deletar: (id, usuarioId) => {
+        const indice = tarefas.findIndex(t => t.id === Number(id) && t.usuarioId === Number(usuarioId));
+        if (indice === -1) return null;
 
-    remover: (id) => {
-        const indice = tarefas.findIndex(tarefa => tarefa.id === id);
-        if (indice === -1) return undefined;
-
-        return tarefas.splice(indice, 1)[0];
-    },
+        const [removida] = tarefas.splice(indice, 1);
+        salvarTarefas(tarefas);
+        return removida;
+    }
 };
