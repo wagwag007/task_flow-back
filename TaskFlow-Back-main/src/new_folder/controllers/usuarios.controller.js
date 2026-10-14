@@ -16,17 +16,18 @@ const usuariosController = {
     },
 
     criar(req, res) {
-        const { nome, email } = req.body;
-        if (typeof nome !== 'string' || !nome.trim() || typeof email !== 'string' || !email.trim()) {
-            return res.status(400).json({ erro: 'Nome e email obrigatórios' });
+        const { nome, email, senha } = req.body;
+        if (typeof nome !== 'string' || !nome.trim() || typeof email !== 'string' || !email.trim() || typeof senha !== 'string' || senha.length < 6) {
+            return res.status(400).json({ erro: 'Nome, email e senha (mínimo 6 caracteres) são obrigatórios' });
         }
         const emailNormalizado = email.trim().toLowerCase();
-        if (usuarioModel.listar().some(usuario => usuario.email === emailNormalizado)) {
+        if (usuarioModel.listar().some(usuario => usuario.email.toLowerCase() === emailNormalizado)) {
             return res.status(400).json({ erro: 'Email já cadastrado' });
         }
 
-        const novoUsuario = usuarioModel.adicionar({ nome: nome.trim(), email: emailNormalizado });
-        res.status(201).json(novoUsuario);
+        const novoUsuario = usuarioModel.criar({ nome: nome.trim(), email: emailNormalizado, senha });
+        const { senha: senhaSalva, ...usuarioPublico } = novoUsuario;
+        res.status(201).json(usuarioPublico);
     },
 
     atualizar(req, res) {

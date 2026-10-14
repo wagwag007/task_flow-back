@@ -3,6 +3,7 @@ const express = require('express');
 const tarefasRoutes = require('./src/new_folder/routes/tarefas.routes');
 const usuariosRoutes = require('./src/new_folder/routes/usuarios.routes');
 const projetosRoutes = require('./src/new_folder/routes/projetos.routes');
+const authRoutes = require('./src/new_folder/routes/auth.routes');
 const logger = require('./src/new_folder/middlewares/logger');
 const corsMiddleware = require('./src/new_folder/middlewares/cors');
 
@@ -15,6 +16,7 @@ app.use(corsMiddleware);
 
 app.use('/tarefas', tarefasRoutes);
 app.use('/usuarios', usuariosRoutes);
+app.use('/auth', authRoutes);
 app.use('/projetos', projetosRoutes);
 
 app.get('/', (req, res) => {
