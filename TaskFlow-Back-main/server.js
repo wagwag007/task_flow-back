@@ -6,7 +6,7 @@ const projetosRoutes = require('./src/new_folder/routes/projetos.routes');
 const authRoutes = require('./src/new_folder/routes/auth.routes');
 const logger = require('./src/new_folder/middlewares/logger');
 const corsMiddleware = require('./src/new_folder/middlewares/cors');
-const criarErro = require('../utils/criarErro');
+const criarErro = require('./utils/criarErro');
 
 const app = express();
 const PORTA = process.env.PORT || 3000;
