@@ -6,6 +6,11 @@ const prioridadesValidas = ['alta', 'media', 'baixa'];
 const colunasValidas = ['afazer', 'andamento', 'concluido'];
 
 const idValido = (valor) => /^\d+$/.test(valor) && Number(valor) > 0;
+const criarErroNaoEncontrado = () => {
+	const erro = new Error('Tarefa não encontrada');
+	erro.statusCode = 404;
+	return erro;
+};
 
 const validarDados = ({ texto, prioridade, coluna }, exigirTexto = false) => {
 	if (exigirTexto && (typeof texto !== 'string' || !texto.trim())) return 'Texto obrigatório';
@@ -31,7 +36,7 @@ const tarefasController = {
 	buscarPorId(req, res) {
 		if (!idValido(req.params.id)) return res.status(400).json({ erro: 'ID inválido' });
 		const tarefa = tarefaModel.buscar(Number(req.params.id));
-		if (!tarefa) return res.status(404).json({ erro: 'Tarefa não encontrada' });
+		if (!tarefa) throw criarErroNaoEncontrado();
 		res.json(tarefa);
 	},
 
@@ -61,11 +66,11 @@ const tarefasController = {
 
 	atualizar(req, res) {
 		if (!idValido(req.params.id)) return res.status(400).json({ erro: 'ID inválido' });
-		const erro = validarDados(req.body);
-		if (erro) return res.status(400).json({ erro });
 		const id = Number(req.params.id);
 		const atual = tarefaModel.buscar(id);
-		if (!atual) return res.status(404).json({ erro: 'Tarefa não encontrada' });
+		if (!atual) throw criarErroNaoEncontrado();
+		const erro = validarDados(req.body);
+		if (erro) return res.status(400).json({ erro });
 		if (req.body.usuarioId !== undefined && !usuarioModel.buscar(Number(req.body.usuarioId))) {
 			return res.status(400).json({ erro: 'Usuário não encontrado' });
 		}
@@ -94,7 +99,7 @@ const tarefasController = {
 	remover(req, res) {
 		if (!idValido(req.params.id)) return res.status(400).json({ erro: 'ID inválido' });
 		const tarefaRemovida = tarefaModel.remover(Number(req.params.id));
-		if (!tarefaRemovida) return res.status(404).json({ erro: 'Tarefa não encontrada' });
+		if (!tarefaRemovida) throw criarErroNaoEncontrado();
 		res.json({ mensagem: 'Tarefa removida', tarefa: tarefaRemovida });
 	},
 
