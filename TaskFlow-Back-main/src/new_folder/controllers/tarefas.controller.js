@@ -41,7 +41,8 @@ const tarefasController = {
 	},
 
 	criar(req, res) {
-		const erro = validarDados(req.body, true);
+		const texto = req.body.texto ?? req.body.titulo;
+		const erro = validarDados({ ...req.body, texto }, true);
 		if (erro) return res.status(400).json({ erro });
 		if (req.body.usuarioId !== undefined && !usuarioModel.buscar(Number(req.body.usuarioId))) {
 			return res.status(400).json({ erro: 'Usuário não encontrado' });
@@ -55,7 +56,8 @@ const tarefasController = {
 		}
 
 		const novaTarefa = tarefaModel.adicionar({
-			texto: req.body.texto.trim(),
+			texto: texto.trim(),
+			titulo: texto.trim(),
 			prioridade: req.body.prioridade,
 			coluna: req.body.coluna,
 			usuarioId: req.body.usuarioId === undefined ? undefined : Number(req.body.usuarioId),
@@ -69,7 +71,8 @@ const tarefasController = {
 		const id = Number(req.params.id);
 		const atual = tarefaModel.buscar(id);
 		if (!atual) throw criarErroNaoEncontrado();
-		const erro = validarDados(req.body);
+		const texto = req.body.texto ?? req.body.titulo;
+		const erro = validarDados({ ...req.body, texto });
 		if (erro) return res.status(400).json({ erro });
 		if (req.body.usuarioId !== undefined && !usuarioModel.buscar(Number(req.body.usuarioId))) {
 			return res.status(400).json({ erro: 'Usuário não encontrado' });
@@ -84,7 +87,11 @@ const tarefasController = {
 		}
 		const dados = {};
 		for (const campo of ['texto', 'prioridade', 'coluna', 'usuarioId', 'projetoId']) {
-			if (req.body[campo] !== undefined) dados[campo] = campo === 'texto' ? req.body[campo].trim() : req.body[campo];
+			if (campo !== 'texto' && req.body[campo] !== undefined) dados[campo] = req.body[campo];
+		}
+		if (texto !== undefined) {
+			dados.texto = texto.trim();
+			dados.titulo = texto.trim();
 		}
 		if (dados.usuarioId !== undefined) dados.usuarioId = Number(dados.usuarioId);
 		if (dados.projetoId !== undefined) dados.projetoId = Number(dados.projetoId);

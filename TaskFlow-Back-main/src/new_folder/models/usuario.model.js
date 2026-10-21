@@ -34,8 +34,18 @@ function buscarPorEmail(email) {
     return usuarios.find(u => u.email === email);
 }
 
+function remover(id) {
+    const indice = usuarios.findIndex(u => u.id === Number(id));
+    if (indice === -1) return null;
+
+    const [removido] = usuarios.splice(indice, 1);
+    salvarUsuarios();
+    return removido;
+}
+
 module.exports = {
     listar: () => usuarios,
+    buscar: (id) => usuarios.find(u => u.id === Number(id)),
     buscarPorId: (id) => usuarios.find(u => u.id === Number(id)),
     buscarPorEmail: (email) => usuarios.find(u => u.email === email),
     criar: (usuario) => {
@@ -49,17 +59,11 @@ module.exports = {
         if (indice === -1) return null;
 
         usuarios[indice] = { ...usuarios[indice], ...usuarioAtualizado, id: Number(id) };
-    salvarUsuarios();
+        salvarUsuarios();
         return usuarios[indice];
     },
-    deletar: (id) => {
-        const indice = usuarios.findIndex(u => u.id === Number(id));
-        if (indice === -1) return null;
-
-        const [removido] = usuarios.splice(indice, 1);
-    salvarUsuarios();
-        return removido;
-    }
+    deletar: remover,
+    remover,
 };
 
 module.exports.buscarPorEmail = buscarPorEmail;

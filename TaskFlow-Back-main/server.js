@@ -1,4 +1,7 @@
 const express = require('express');
+const path = require('path');
+
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const tarefasRoutes = require('./src/new_folder/routes/tarefas.routes');
 const usuariosRoutes = require('./src/new_folder/routes/usuarios.routes');
