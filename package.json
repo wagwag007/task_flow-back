@@ -1,0 +1,10 @@
+{
+  "name": "taskflow-deployment",
+  "private": true,
+  "workspaces": [
+    "TaskFlow-Back-main"
+  ],
+  "scripts": {
+    "start": "node TaskFlow-Back-main/server.js"
+  }
+}
