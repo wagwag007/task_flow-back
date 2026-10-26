@@ -1,23 +1,25 @@
 let projetos = [];
-let proximoId = 1;
 
 module.exports = {
     listar: () => projetos,
-    buscar: (id) => projetos.find(projeto => projeto.id === id),
-    adicionar: ({ nome, descricao }) => {
-        const novoProjeto = { id: proximoId++, nome, descricao };
+    buscarPorId: (id) => projetos.find(p => p.id === Number(id)),
+    criar: (projeto) => {
+        const novoProjeto = { id: Date.now(), ...projeto };
         projetos.push(novoProjeto);
         return novoProjeto;
     },
-    atualizar: (id, dados) => {
-        const indice = projetos.findIndex(projeto => projeto.id === id);
-        if (indice === -1) return undefined;
-        projetos[indice] = { ...projetos[indice], ...dados, id };
+    atualizar: (id, projetoAtualizado) => {
+        const indice = projetos.findIndex(p => p.id === Number(id));
+        if (indice === -1) return null;
+
+        projetos[indice] = { ...projetos[indice], ...projetoAtualizado, id: Number(id) };
         return projetos[indice];
     },
-    remover: (id) => {
-        const indice = projetos.findIndex(projeto => projeto.id === id);
-        if (indice === -1) return undefined;
-        return projetos.splice(indice, 1)[0];
-    },
+    deletar: (id) => {
+        const indice = projetos.findIndex(p => p.id === Number(id));
+        if (indice === -1) return null;
+
+        const [removido] = projetos.splice(indice, 1);
+        return removido;
+    }
 };

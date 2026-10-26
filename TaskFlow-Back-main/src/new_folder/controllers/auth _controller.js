@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const usuarioModel = require('../models/usuario.model');
 
+const idBancoValido = (id) => Number.isSafeInteger(id) && id > 0 && id <= 2147483647;
+
 const authController = {
   login(req, res) {
     const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
@@ -11,13 +13,12 @@ const authController = {
     }
 
     const usuario = usuarioModel.listar().find(
-      (item) => item.email.trim().toLowerCase() === email
+      (item) =>
+        item.email.trim().toLowerCase() === email &&
+        item.senha === senha &&
+        idBancoValido(item.id)
     );
     if (!usuario) {
-      return res.status(401).json({ erro: 'Credenciais inválidas' });
-    }
-
-    if (usuario.senha !== senha) {
       return res.status(401).json({ erro: 'Credenciais inválidas' });
     }
 

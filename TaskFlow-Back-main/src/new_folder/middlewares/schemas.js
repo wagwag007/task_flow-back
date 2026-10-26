@@ -5,6 +5,8 @@ const schemas = {
     prioridade: { obrigatorio: false, tipo: 'string', enum: ['alta', 'media', 'baixa'] },
     coluna: { obrigatorio: false, tipo: 'string', enum: ['afazer', 'andamento', 'concluido'] },
     usuarioId: { obrigatorio: false, tipo: 'number' },
+    projetoId: { obrigatorio: false, tipo: 'number' },
+    ordem: { obrigatorio: false, tipo: 'number' },
   },
   usuario: {
     nome: { obrigatorio: true, tipo: 'string', minLength: 3 },

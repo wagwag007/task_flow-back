@@ -2,8 +2,11 @@ const express = require('express');
 
 const router = express.Router();
 const tarefasController = require('../controllers/tarefas.controller');
+const autenticar = require('../middlewares/autenticar');
 const validar = require('../middlewares/validar');
 const schemas = require('../middlewares/schemas');
+
+router.use(autenticar);
 
 router.get('/estatisticas', tarefasController.estatisticas);
 router.get('/resumo', tarefasController.resumo);

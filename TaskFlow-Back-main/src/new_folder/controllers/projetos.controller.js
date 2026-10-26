@@ -11,7 +11,7 @@ const projetosController = {
 
     buscarPorId(req, res) {
         if (!idValido(req.params.id)) return res.status(400).json({ erro: 'ID inválido' });
-        const projeto = projetoModel.buscar(Number(req.params.id));
+        const projeto = projetoModel.buscarPorId(Number(req.params.id));
         if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' });
         res.json(projeto);
     },
@@ -21,14 +21,14 @@ const projetosController = {
         if (typeof nome !== 'string' || !nome.trim()) {
             return res.status(400).json({ erro: 'Nome obrigatório' });
         }
-        const projeto = projetoModel.adicionar({ nome: nome.trim(), descricao: descricao === undefined ? '' : descricao });
+        const projeto = projetoModel.criar({ nome: nome.trim(), descricao: descricao === undefined ? '' : descricao });
         res.status(201).json(projeto);
     },
 
     atualizar(req, res) {
         if (!idValido(req.params.id)) return res.status(400).json({ erro: 'ID inválido' });
         const id = Number(req.params.id);
-        if (!projetoModel.buscar(id)) return res.status(404).json({ erro: 'Projeto não encontrado' });
+        if (!projetoModel.buscarPorId(id)) return res.status(404).json({ erro: 'Projeto não encontrado' });
         const { nome, descricao } = req.body;
         if (nome !== undefined && (typeof nome !== 'string' || !nome.trim())) {
             return res.status(400).json({ erro: 'Nome inválido' });
@@ -40,23 +40,23 @@ const projetosController = {
         res.json(projeto);
     },
 
-    remover(req, res) {
+    async remover(req, res) {
         if (!idValido(req.params.id)) return res.status(400).json({ erro: 'ID inválido' });
         const id = Number(req.params.id);
-        const projeto = projetoModel.buscar(id);
+        const projeto = projetoModel.buscarPorId(id);
         if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' });
-        if (tarefaModel.listarPorProjeto(id).length > 0) {
+        if ((await tarefaModel.listarPorProjeto(id)).length > 0) {
             return res.status(400).json({ erro: 'Projeto possui tarefas associadas. Remova as tarefas antes.' });
         }
-        res.json({ mensagem: 'Projeto removido', projeto: projetoModel.remover(id) });
+        res.json({ mensagem: 'Projeto removido', projeto: projetoModel.deletar(id) });
     },
 
-    resumo(req, res) {
+    async resumo(req, res) {
         if (!idValido(req.params.id)) return res.status(400).json({ erro: 'ID inválido' });
         const id = Number(req.params.id);
-        const projeto = projetoModel.buscar(id);
+        const projeto = projetoModel.buscarPorId(id);
         if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' });
-        const tarefas = tarefaModel.listarPorProjeto(id);
+        const tarefas = await tarefaModel.listarPorProjeto(id);
         res.json({
             projeto,
             totalTarefas: tarefas.length,
