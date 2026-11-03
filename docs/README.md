@@ -12,4 +12,4 @@ A documentação interativa do Swagger fica disponível em `/docs` (ou `/docs/`)
 
 O schema existente descreve tabelas já presentes no PostgreSQL; `npm run db:pull` atualiza o schema a partir do banco e pode sobrescrever alterações locais. Revise as diferenças antes de executá-lo. A API usa o Prisma Client para usuários, projetos e tarefas.
 
-As senhas novas são armazenadas com scrypt no campo `usuarios.senha_hash`. Contas que ainda estejam apenas no antigo arquivo JSON não são importadas automaticamente; cadastre-as novamente ou faça uma migração controlada antes de remover esse arquivo.
+As senhas são armazenadas com scrypt no campo `usuarios.senha_hash`. No primeiro login válido, uma conta que ainda esteja apenas no antigo arquivo JSON é criada no banco com a senha já protegida por hash. Senhas antigas em texto puro que já estejam no banco também são convertidas para hash após um login válido.

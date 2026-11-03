@@ -1,8 +1,33 @@
+const fs = require('node:fs/promises');
+const path = require('node:path');
 const jwt = require('jsonwebtoken');
 const usuarioModel = require('../models/usuario.model');
-const { verificarHash } = require('../../../utils/senha');
+const { gerarHash, verificarHash } = require('../../../utils/senha');
 
 const idBancoValido = (id) => Number.isSafeInteger(id) && id > 0 && id <= 2147483647;
+const arquivoUsuariosLegados = path.join(__dirname, '..', 'data', 'usuarios.json');
+
+async function buscarUsuarioLegado(email, senha) {
+  let conteudo;
+  try {
+    conteudo = await fs.readFile(arquivoUsuariosLegados, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+
+  const usuariosLegados = JSON.parse(conteudo);
+  if (!Array.isArray(usuariosLegados)) {
+    throw new Error('O arquivo de usuários antigos tem um formato inválido');
+  }
+
+  return usuariosLegados.find((usuario) =>
+    typeof usuario.email === 'string' &&
+    usuario.email.trim().toLowerCase() === email &&
+    typeof usuario.senha === 'string' &&
+    usuario.senha === senha
+  ) || null;
+}
 
 const authController = {
   async login(req, res) {
@@ -13,8 +38,29 @@ const authController = {
       return res.status(400).json({ erro: 'Email e senha são obrigatórios' });
     }
 
-    const usuario = await usuarioModel.buscarPorEmail(email);
-    if (!usuario || !idBancoValido(usuario.id) || !await verificarHash(senha, usuario.senha_hash)) {
+    let usuario = await usuarioModel.buscarPorEmail(email);
+    if (usuario && !await verificarHash(senha, usuario.senha_hash)) {
+      if (usuario.senha_hash !== senha) {
+        return res.status(401).json({ erro: 'Credenciais inválidas' });
+      }
+
+      usuario = await usuarioModel.atualizar(usuario.id, {
+        senha_hash: await gerarHash(senha),
+      });
+    } else if (!usuario) {
+      const usuarioLegado = await buscarUsuarioLegado(email, senha);
+      if (!usuarioLegado) {
+        return res.status(401).json({ erro: 'Credenciais inválidas' });
+      }
+
+      usuario = await usuarioModel.criar({
+        nome: usuarioLegado.nome,
+        email: usuarioLegado.email.trim().toLowerCase(),
+        senha_hash: await gerarHash(senha),
+      });
+    }
+
+    if (!idBancoValido(usuario.id)) {
       return res.status(401).json({ erro: 'Credenciais inválidas' });
     }
 
