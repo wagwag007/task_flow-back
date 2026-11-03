@@ -1,65 +1,44 @@
-const fs = require('fs');
-const path = require('path');
+const prisma = require('../database/db');
 
-const diretorioDados = path.join(__dirname, '..', 'data');
-const arquivoDados = path.join(diretorioDados, 'usuarios.json');
-const usuariosPadrao = [
-    {
-        id: 1,
-        nome: 'wagner',
-        email: 'wagnerfilho321@gmail.com',
-        senha: '123456'
-    }
-];
-
-function carregarUsuarios() {
-    fs.mkdirSync(diretorioDados, { recursive: true });
-
-    if (!fs.existsSync(arquivoDados)) {
-        fs.writeFileSync(arquivoDados, JSON.stringify(usuariosPadrao, null, 2), 'utf8');
-        return [...usuariosPadrao];
-    }
-
-    const conteudo = fs.readFileSync(arquivoDados, 'utf8');
-    return conteudo.trim() ? JSON.parse(conteudo) : [];
-}
-
-function salvarUsuarios() {
-    fs.writeFileSync(arquivoDados, JSON.stringify(usuarios, null, 2), 'utf8');
-}
-
-let usuarios = carregarUsuarios();
-
-function buscarPorEmail(email) {
-    return usuarios.find(u => u.email === email);
-}
-
-module.exports = {
-    listar: () => usuarios,
-    buscarPorId: (id) => usuarios.find(u => u.id === Number(id)),
-    buscarPorEmail: (email) => usuarios.find(u => u.email === email),
-    criar: (usuario) => {
-        const novoUsuario = { id: Date.now(), ...usuario };
-        usuarios.push(novoUsuario);
-        salvarUsuarios();
-        return novoUsuario;
-    },
-    atualizar: (id, usuarioAtualizado) => {
-        const indice = usuarios.findIndex(u => u.id === Number(id));
-        if (indice === -1) return null;
-
-        usuarios[indice] = { ...usuarios[indice], ...usuarioAtualizado, id: Number(id) };
-    salvarUsuarios();
-        return usuarios[indice];
-    },
-    deletar: (id) => {
-        const indice = usuarios.findIndex(u => u.id === Number(id));
-        if (indice === -1) return null;
-
-        const [removido] = usuarios.splice(indice, 1);
-    salvarUsuarios();
-        return removido;
-    }
+const camposPublicos = {
+    id: true,
+    nome: true,
+    email: true,
 };
 
-module.exports.buscarPorEmail = buscarPorEmail;
+module.exports = {
+    listar: () => prisma.usuarios.findMany({
+        select: camposPublicos,
+        orderBy: { id: 'asc' },
+    }),
+
+    buscarPorId: (id) => prisma.usuarios.findUnique({
+        where: { id: Number(id) },
+        select: camposPublicos,
+    }),
+
+    buscarPorEmail: (email) => prisma.usuarios.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
+    }),
+
+    criar: ({ nome, email, senha_hash }) => prisma.usuarios.create({
+        data: { nome, email, senha_hash },
+        select: camposPublicos,
+    }),
+
+    atualizar: (id, dados) => Object.keys(dados).length === 0
+        ? prisma.usuarios.findUnique({
+            where: { id: Number(id) },
+            select: camposPublicos,
+        })
+        : prisma.usuarios.update({
+            where: { id: Number(id) },
+            data: dados,
+            select: camposPublicos,
+        }),
+
+    deletar: (id) => prisma.usuarios.delete({
+        where: { id: Number(id) },
+        select: camposPublicos,
+    }),
+};

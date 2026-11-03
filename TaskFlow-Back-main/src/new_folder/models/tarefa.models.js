@@ -1,158 +1,150 @@
-const pool = require('../database/db');
+const prisma = require('../database/db');
 
-const camposTarefa = `
-  t.id,
-  t.texto AS titulo,
-  CASE lower(t.coluna)
-    WHEN 'todo' THEN 'afazer'
-    WHEN 'doing' THEN 'andamento'
-    WHEN 'done' THEN 'concluido'
-    ELSE lower(t.coluna)
-  END AS coluna,
-  t.ordem,
-  t.projeto_id AS "projetoId",
-  t.usuario_id AS "usuarioId",
-  t.idprioridade AS "prioridadeId",
-  t.criado_em AS "criadoEm",
-  u.nome AS "usuarioNome",
-  pr.nome AS "projetoNome",
-  CASE t.idprioridade
-    WHEN 1 THEN 'alta'
-    WHEN 2 THEN 'media'
-    WHEN 3 THEN 'baixa'
-    ELSE NULL
-  END AS prioridade`;
+const prioridadeIds = { alta: 1, media: 2, baixa: 3 };
+const prioridades = Object.fromEntries(
+    Object.entries(prioridadeIds).map(([nome, id]) => [id, nome])
+);
+const colunasBanco = { afazer: 'todo', andamento: 'doing', concluido: 'done' };
+const colunasApi = { todo: 'afazer', doing: 'andamento', done: 'concluido' };
+const relacionamentos = {
+    usuarios: { select: { nome: true } },
+    projetos: { select: { nome: true } },
+};
 
-function mapearColunaParaBanco(coluna) {
-  const colunasBanco = { afazer: 'todo', andamento: 'doing', concluido: 'done' };
-  return coluna === undefined ? undefined : colunasBanco[coluna] || coluna;
+function mapearTarefa(tarefa) {
+    return {
+        id: tarefa.id,
+        titulo: tarefa.texto,
+        coluna: colunasApi[tarefa.coluna.toLowerCase()] || tarefa.coluna.toLowerCase(),
+        ordem: tarefa.ordem,
+        projetoId: tarefa.projeto_id,
+        usuarioId: tarefa.usuario_id,
+        prioridadeId: tarefa.idprioridade,
+        criadoEm: tarefa.criado_em,
+        usuarioNome: tarefa.usuarios?.nome,
+        projetoNome: tarefa.projetos?.nome,
+        prioridade: prioridades[tarefa.idprioridade] || null,
+    };
 }
 
-function buscarPrioridadeId(prioridade) {
-  const idsPrioridade = { alta: 1, media: 2, baixa: 3 };
-  const id = idsPrioridade[String(prioridade || 'media').toLowerCase()];
-  if (!id) throw new Error('Prioridade inválida');
-  return id;
+function mapearColunaParaBanco(coluna) {
+    return coluna === undefined ? undefined : colunasBanco[coluna] || coluna;
+}
+
+function buscarPrioridadeId(prioridade = 'media') {
+    const id = prioridadeIds[String(prioridade).toLowerCase()];
+    if (!id) throw new Error('Prioridade inválida');
+    return id;
 }
 
 async function listar(usuarioId) {
-  const filtroUsuario = usuarioId === undefined || usuarioId === null
-    ? ''
-    : 'WHERE t.usuario_id = $1';
-  const parametros = usuarioId === undefined || usuarioId === null ? [] : [usuarioId];
-  const { rows } = await pool.query(`
-    SELECT ${camposTarefa}
-    FROM tarefas t
-    LEFT JOIN usuarios u ON u.id = t.usuario_id
-    LEFT JOIN projetos pr ON pr.id = t.projeto_id
-    ${filtroUsuario}
-    ORDER BY t.ordem, t.id
-  `, parametros);
-
-  return rows;
+    const tarefas = await prisma.tarefas.findMany({
+        where: usuarioId === undefined || usuarioId === null
+            ? undefined
+            : { usuario_id: Number(usuarioId) },
+        include: relacionamentos,
+        orderBy: [{ ordem: 'asc' }, { id: 'asc' }],
+    });
+    return tarefas.map(mapearTarefa);
 }
 
 async function listarPorProjeto(projetoId) {
-  const { rows } = await pool.query(`
-    SELECT ${camposTarefa}
-    FROM tarefas t
-    LEFT JOIN usuarios u ON u.id = t.usuario_id
-    LEFT JOIN projetos pr ON pr.id = t.projeto_id
-    WHERE t.projeto_id = $1
-    ORDER BY t.ordem, t.id
-  `, [projetoId]);
-
-  return rows;
+    const tarefas = await prisma.tarefas.findMany({
+        where: { projeto_id: Number(projetoId) },
+        include: relacionamentos,
+        orderBy: [{ ordem: 'asc' }, { id: 'asc' }],
+    });
+    return tarefas.map(mapearTarefa);
 }
 
 async function buscarPorId(id, usuarioId) {
-  const { rows } = await pool.query(`
-    SELECT ${camposTarefa}
-    FROM tarefas t
-    LEFT JOIN usuarios u ON u.id = t.usuario_id
-    LEFT JOIN projetos pr ON pr.id = t.projeto_id
-    WHERE t.id = $1 AND t.usuario_id = $2
-  `, [id, usuarioId]);
-
-  return rows[0] || null;
+    const tarefa = await prisma.tarefas.findFirst({
+        where: { id: Number(id), usuario_id: Number(usuarioId) },
+        include: relacionamentos,
+    });
+    return tarefa ? mapearTarefa(tarefa) : null;
 }
 
 async function rankingUsuarios() {
-  const { rows } = await pool.query(`
-    SELECT t.usuario_id AS "usuarioId", u.nome, COUNT(*)::int AS "totalTarefas"
-    FROM tarefas t
-    LEFT JOIN usuarios u ON u.id = t.usuario_id
-    GROUP BY t.usuario_id, u.nome
-    ORDER BY "totalTarefas" DESC
-  `);
+    const ranking = await prisma.tarefas.groupBy({
+        by: ['usuario_id'],
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+    });
+    const usuarios = await prisma.usuarios.findMany({
+        where: { id: { in: ranking.map(item => item.usuario_id) } },
+        select: { id: true, nome: true },
+    });
+    const nomes = new Map(usuarios.map(usuario => [usuario.id, usuario.nome]));
 
-  return rows;
+    return ranking.map(item => ({
+        usuarioId: item.usuario_id,
+        nome: nomes.get(item.usuario_id) || null,
+        totalTarefas: item._count.id,
+    }));
 }
 
 async function adicionar({ titulo, coluna, ordem, projetoId, usuarioId, prioridade }) {
-  const prioridadeId = buscarPrioridadeId(prioridade);
-  let projetoTarefaId = projetoId;
+    let projetoTarefaId = projetoId;
 
-  if (projetoTarefaId === undefined || projetoTarefaId === null) {
-    const { rows: projetos } = await pool.query(
-      'SELECT id FROM projetos WHERE usuario_id = $1 ORDER BY id LIMIT 1',
-      [usuarioId]
-    );
-    if (!projetos[0]) {
-      const erro = new Error('Não há projeto cadastrado para associar à tarefa');
-      erro.statusCode = 400;
-      throw erro;
+    if (projetoTarefaId === undefined || projetoTarefaId === null) {
+        const projeto = await prisma.projetos.findFirst({
+            where: { usuario_id: Number(usuarioId) },
+            orderBy: { id: 'asc' },
+            select: { id: true },
+        });
+        if (!projeto) {
+            const erro = new Error('Não há projeto cadastrado para associar à tarefa');
+            erro.statusCode = 400;
+            throw erro;
+        }
+        projetoTarefaId = projeto.id;
     }
-    projetoTarefaId = projetos[0].id;
-  }
 
-  const { rows } = await pool.query(`
-    INSERT INTO tarefas (texto, coluna, ordem, projeto_id, usuario_id, idprioridade)
-    VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING id
-  `, [titulo, mapearColunaParaBanco(coluna) || 'todo', ordem || 0, projetoTarefaId, usuarioId, prioridadeId]);
-
-  return await buscarPorId(rows[0].id, usuarioId);
+    const tarefa = await prisma.tarefas.create({
+        data: {
+            texto: titulo,
+            coluna: mapearColunaParaBanco(coluna) || 'todo',
+            ordem: ordem ?? 0,
+            projeto_id: Number(projetoTarefaId),
+            usuario_id: Number(usuarioId),
+            idprioridade: buscarPrioridadeId(prioridade),
+        },
+        include: relacionamentos,
+    });
+    return mapearTarefa(tarefa);
 }
 
 async function atualizar(id, usuarioId, { titulo, coluna, ordem, projetoId, prioridade }) {
-  let prioridadeId = null;
-  if (prioridade) {
-    prioridadeId = buscarPrioridadeId(prioridade);
-  }
+    const data = {};
+    if (titulo !== undefined) data.texto = titulo;
+    if (coluna !== undefined) data.coluna = mapearColunaParaBanco(coluna);
+    if (ordem !== undefined) data.ordem = ordem;
+    if (projetoId !== undefined) data.projeto_id = Number(projetoId);
+    if (prioridade !== undefined) data.idprioridade = buscarPrioridadeId(prioridade);
+    if (Object.keys(data).length === 0) return buscarPorId(id, usuarioId);
 
-  const { rows } = await pool.query(`
-    UPDATE tarefas
-    SET texto = COALESCE($1, texto),
-        coluna = COALESCE($2, coluna),
-        ordem = COALESCE($3, ordem),
-        projeto_id = COALESCE($4, projeto_id),
-        idprioridade = COALESCE($5, idprioridade)
-    WHERE id = $6 AND usuario_id = $7
-    RETURNING id
-  `, [titulo, mapearColunaParaBanco(coluna), ordem, projetoId, prioridadeId, id, usuarioId]);
-
-  if (rows.length === 0) return null;
-
-  return await buscarPorId(id, usuarioId);
+    const resultado = await prisma.tarefas.updateMany({
+        where: { id: Number(id), usuario_id: Number(usuarioId) },
+        data,
+    });
+    if (resultado.count === 0) return null;
+    return buscarPorId(id, usuarioId);
 }
 
 async function remover(id, usuarioId) {
-  const { rows } = await pool.query(`
-    DELETE FROM tarefas
-    WHERE id = $1 AND usuario_id = $2
-    RETURNING id
-  `, [id, usuarioId]);
-
-  return rows[0] || null;
+    const resultado = await prisma.tarefas.deleteMany({
+        where: { id: Number(id), usuario_id: Number(usuarioId) },
+    });
+    return resultado.count ? { id: Number(id) } : null;
 }
 
 module.exports = {
-  listar,
-  listarPorProjeto,
-  buscarPorId,
-  adicionar,
-  atualizar,
-  remover,
-  rankingUsuarios
+    listar,
+    listarPorProjeto,
+    buscarPorId,
+    adicionar,
+    atualizar,
+    remover,
+    rankingUsuarios,
 };

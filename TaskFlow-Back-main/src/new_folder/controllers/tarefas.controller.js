@@ -40,7 +40,7 @@ const tarefasController = {
 		}
 
 		let resultado = await tarefaModel.listar(usuarioId === undefined
-			? undefined
+			? Number(req.usuario.id)
 			: Number(usuarioId));
 		if (coluna) resultado = resultado.filter(tarefa => tarefa.coluna === coluna);
 		if (prioridade) resultado = resultado.filter(tarefa => tarefa.prioridade === prioridade);

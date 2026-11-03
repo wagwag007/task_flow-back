@@ -1,5 +1,7 @@
 const express = require('express');
 const path = require('path');
+const swaggerUi = require('swagger-ui-express');
+const openapi = require('../docs/openapi');
 
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
@@ -17,6 +19,9 @@ const PORTA = process.env.PORT || 3000;
 app.use(express.json());
 app.use(logger);
 app.use(corsMiddleware);
+
+app.get('/docs/openapi.json', (req, res) => res.json(openapi));
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapi));
 
 app.use('/tarefas', tarefasRoutes);
 app.use('/usuarios', usuariosRoutes);

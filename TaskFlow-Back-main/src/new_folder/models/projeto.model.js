@@ -1,25 +1,30 @@
-let projetos = [];
+const prisma = require('../database/db');
 
 module.exports = {
-    listar: () => projetos,
-    buscarPorId: (id) => projetos.find(p => p.id === Number(id)),
-    criar: (projeto) => {
-        const novoProjeto = { id: Date.now(), ...projeto };
-        projetos.push(novoProjeto);
-        return novoProjeto;
-    },
-    atualizar: (id, projetoAtualizado) => {
-        const indice = projetos.findIndex(p => p.id === Number(id));
-        if (indice === -1) return null;
+    listar: () => prisma.projetos.findMany({
+        orderBy: { id: 'asc' },
+    }),
 
-        projetos[indice] = { ...projetos[indice], ...projetoAtualizado, id: Number(id) };
-        return projetos[indice];
-    },
-    deletar: (id) => {
-        const indice = projetos.findIndex(p => p.id === Number(id));
-        if (indice === -1) return null;
+    buscarPorId: (id) => prisma.projetos.findUnique({
+        where: { id: Number(id) },
+    }),
 
-        const [removido] = projetos.splice(indice, 1);
-        return removido;
-    }
+    criar: ({ nome, descricao, usuarioId }) => prisma.projetos.create({
+        data: {
+            nome,
+            descricao,
+            usuarios: { connect: { id: Number(usuarioId) } },
+        },
+    }),
+
+    atualizar: (id, dados) => Object.keys(dados).length === 0
+        ? prisma.projetos.findUnique({ where: { id: Number(id) } })
+        : prisma.projetos.update({
+            where: { id: Number(id) },
+            data: dados,
+        }),
+
+    deletar: (id) => prisma.projetos.delete({
+        where: { id: Number(id) },
+    }),
 };

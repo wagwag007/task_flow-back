@@ -1,10 +1,11 @@
 const jwt = require('jsonwebtoken');
 const usuarioModel = require('../models/usuario.model');
+const { verificarHash } = require('../../../utils/senha');
 
 const idBancoValido = (id) => Number.isSafeInteger(id) && id > 0 && id <= 2147483647;
 
 const authController = {
-  login(req, res) {
+  async login(req, res) {
     const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     const senha = typeof req.body.senha === 'string' ? req.body.senha : '';
 
@@ -12,13 +13,8 @@ const authController = {
       return res.status(400).json({ erro: 'Email e senha são obrigatórios' });
     }
 
-    const usuario = usuarioModel.listar().find(
-      (item) =>
-        item.email.trim().toLowerCase() === email &&
-        item.senha === senha &&
-        idBancoValido(item.id)
-    );
-    if (!usuario) {
+    const usuario = await usuarioModel.buscarPorEmail(email);
+    if (!usuario || !idBancoValido(usuario.id) || !await verificarHash(senha, usuario.senha_hash)) {
       return res.status(401).json({ erro: 'Credenciais inválidas' });
     }
 
