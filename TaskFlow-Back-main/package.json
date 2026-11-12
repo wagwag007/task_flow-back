@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --runInBand",
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
@@ -21,8 +21,17 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "jest": "^30.0.0",
     "nodemon": "^3.1.14",
     "prisma": "^7.10.1"
+  },
+  "jest": {
+    "rootDir": "..",
+    "testMatch": [
+      "<rootDir>/tests/**/*.test.js",
+      "<rootDir>/test/*test.js",
+      "<rootDir>/test/*.js"
+    ]
   },
   "description": ""
 }
