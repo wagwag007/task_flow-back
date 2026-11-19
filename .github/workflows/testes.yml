@@ -1,0 +1,34 @@
+# Roda os testes da API a cada push e pull request na main
+name: Testes da API
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  testes-api:
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      AMBIENTE: teste
+
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v6
+
+      - name: Instalar o Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar as dependencias
+        run: npm ci
+
+      - name: Rodar os testes
+        run: npm test

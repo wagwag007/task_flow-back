@@ -42,7 +42,7 @@ function validar(schema) {
     }
 
     if (erros.length > 0) {
-      return res.status(400).json({ erros });
+      return res.status(400).json({ erros, detalhes: erros });
     }
 
     next();
@@ -50,4 +50,3 @@ function validar(schema) {
 }
 
 module.exports = validar;
-
